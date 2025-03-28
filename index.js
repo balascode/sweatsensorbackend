@@ -3,6 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 
+// Create Express app
 const app = express();
 
 // Comprehensive CORS configuration
@@ -17,7 +18,10 @@ app.use(cors({
   credentials: true
 }));
 
+// Create HTTP server
 const server = http.createServer(app);
+
+// Socket.IO configuration with extensive options
 const io = new Server(server, {
   cors: {
     origin: [
@@ -28,22 +32,24 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  // Vercel-specific WebSocket configuration
   pingTimeout: 60000,
   pingInterval: 25000,
   transports: ['websocket', 'polling'],
-  path: "/socket.io/", // Explicit socket.io path
+  allowEIO3: true,
+  // Important: Explicit path configuration
+  path: "/socket.io/",
 });
 
-// Detailed connection logging
+// Detailed connection error logging
 io.engine.on("connection_error", (err) => {
-  console.error("Connection Error:", {
+  console.error("Socket.IO Connection Error:", {
     code: err.code,
     message: err.message,
     context: err.context
   });
 });
 
+// Simulate sweat data generation
 function generateSweatData() {
   return {
     sodium: Math.floor(Math.random() * (100 - 30) + 30),
@@ -53,17 +59,19 @@ function generateSweatData() {
   };
 }
 
+// Socket connection handling
 io.on("connection", (socket) => {
   console.log("Frontend connected:", socket.id);
   
-  // Send initial data immediately
+  // Immediate data emission
   socket.emit("sweatData", generateSweatData());
 
-  // Periodic data update
+  // Periodic data updates
   const interval = setInterval(() => {
     socket.emit("sweatData", generateSweatData());
   }, 5000);
 
+  // Disconnect handling
   socket.on("disconnect", () => {
     console.log("Frontend disconnected:", socket.id);
     clearInterval(interval);
@@ -72,18 +80,21 @@ io.on("connection", (socket) => {
 
 // Vercel serverless function export
 module.exports = (req, res) => {
+  // CORS preflight handling
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
-    // Handle CORS preflight requests
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST');
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    );
-    return res.status(200).end();
+    res.status(200).end();
+    return;
   }
 
-  // Your existing server logic
+  // Pass request to server
   server.emit('request', req, res);
 };
