@@ -1,23 +1,37 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const cors = require("cors"); // Make sure to install cors package: npm install cors
 
 const app = express();
+
+// Apply CORS middleware to express app
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://sweatsensor.vercel.app"
+  ],
+  methods: ["GET", "POST"],
+  credentials: true
+}));
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      "http://localhost:3000",        
-      "https://sweatsensor.vercel.app",
+      "http://localhost:3000",
+      "https://sweatsensor.vercel.app"
     ],
     methods: ["GET", "POST"],
-    credentials: true, 
+    credentials: true,
   },
+  // Add these options to handle CORS and connection more robustly
+  allowEIO3: true, // Enable Engine.IO version 3 for broader compatibility
+  pingTimeout: 60000, // Increase timeout
+  pingInterval: 25000, // Adjust ping interval
 });
 
-
-
-// Simulate sweat data 
+// Simulate sweat data
 function generateSweatData() {
   return {
     sodium: Math.floor(Math.random() * (100 - 30) + 30), // 30-100 mg/L
