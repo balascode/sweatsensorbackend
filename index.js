@@ -4,7 +4,18 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "https://sweatsensor.vercel.app/" } });
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:3000",        
+      "https://sweatsensor.vercel.app",
+    ],
+    methods: ["GET", "POST"],
+    credentials: true, 
+  },
+});
+
+
 
 // Simulate sweat data 
 function generateSweatData() {
