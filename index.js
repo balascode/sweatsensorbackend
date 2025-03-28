@@ -1,17 +1,19 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const cors = require("cors"); // Make sure to install cors package: npm install cors
+const cors = require("cors");
 
 const app = express();
 
-// Apply CORS middleware to express app
+// Comprehensive CORS configuration
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "https://sweatsensor.vercel.app"
+    "https://sweatsensor.vercel.app",
+    "https://www.sweatsensor.vercel.app"
   ],
   methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
 
@@ -19,40 +21,60 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      "http://localhost:3000",
-      "https://sweatsensor.vercel.app"
+      "http://localhost:3000", 
+      "https://sweatsensor.vercel.app",
+      "https://www.sweatsensor.vercel.app"
     ],
     methods: ["GET", "POST"],
     credentials: true,
   },
-  // Add these options to handle CORS and connection more robustly
-  allowEIO3: true, // Enable Engine.IO version 3 for broader compatibility
-  pingTimeout: 60000, // Increase timeout
-  pingInterval: 25000, // Adjust ping interval
+  // Enhanced WebSocket configuration
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  allowEIO3: true,
+  transports: ['websocket', 'polling'],
+  path: "/socket.io/", // Explicitly set socket.io path
 });
 
-// Simulate sweat data
+// Detailed connection logging
+io.engine.on("connection_error", (err) => {
+  console.log("Connection Error:", err.code);
+  console.log("Connection Error Message:", err.message);
+  console.log("Connection Error Context:", err.context);
+});
+
+// Rest of your existing server code remains the same
 function generateSweatData() {
   return {
-    sodium: Math.floor(Math.random() * (100 - 30) + 30), // 30-100 mg/L
-    glucose: Math.floor(Math.random() * (20 - 5) + 5),   // 5-20 mg/dL
-    hydration: Math.floor(Math.random() * (100 - 60) + 60), // 60-100%
-    lactate: Math.floor(Math.random() * (15 - 5) + 5),   // 5-15 mmol/L
+    sodium: Math.floor(Math.random() * (100 - 30) + 30),
+    glucose: Math.floor(Math.random() * (20 - 5) + 5),
+    hydration: Math.floor(Math.random() * (100 - 60) + 60),
+    lactate: Math.floor(Math.random() * (15 - 5) + 5),
   };
 }
 
 io.on("connection", (socket) => {
-  console.log("Frontend connected");
-  // Send initial data
+  console.log("Frontend connected:", socket.id);
   socket.emit("sweatData", generateSweatData());
 
-  // Simulate real-time updates every 5 seconds
   const interval = setInterval(() => {
     socket.emit("sweatData", generateSweatData());
   }, 5000);
 
-  socket.on("disconnect", () => clearInterval(interval));
+  socket.on("disconnect", () => {
+    console.log("Frontend disconnected:", socket.id);
+    clearInterval(interval);
+  });
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Allowed origins: ${JSON.stringify(
+    [
+      "http://localhost:3000", 
+      "https://sweatsensor.vercel.app",
+      "https://www.sweatsensor.vercel.app"
+    ]
+  )}`);
+});
