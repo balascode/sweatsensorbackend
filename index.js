@@ -6,43 +6,57 @@ const cors = require("cors");
 // Create Express app
 const app = express();
 
-// Comprehensive CORS configuration
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "https://sweatsensor.vercel.app",
-    "https://www.sweatsensor.vercel.app"
-  ],
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
-}));
+// Comprehensive CORS middleware
+app.use((req, res, next) => {
+  // Dynamic CORS configuration
+  const allowedOrigins = [
+    'http://localhost:3000', 
+    'https://sweatsensor.vercel.app', 
+    'https://www.sweatsensor.vercel.app'
+  ];
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+  res.setHeader('Access-Control-Allow-Credentials', true);
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
 
 // Create HTTP server
 const server = http.createServer(app);
 
-// Socket.IO configuration with extensive options
+// Socket.IO configuration with extensive error handling
 const io = new Server(server, {
   cors: {
     origin: [
-      "http://localhost:3000", 
-      "https://sweatsensor.vercel.app",
-      "https://www.sweatsensor.vercel.app"
+      'http://localhost:3000', 
+      'https://sweatsensor.vercel.app', 
+      'https://www.sweatsensor.vercel.app'
     ],
     methods: ["GET", "POST"],
-    credentials: true,
+    allowedHeaders: ["Content-Type"],
+    credentials: true
   },
+  // Extensive connection configurations
   pingTimeout: 60000,
   pingInterval: 25000,
   transports: ['websocket', 'polling'],
   allowEIO3: true,
-  // Important: Explicit path configuration
-  path: "/socket.io/",
 });
 
 // Detailed connection error logging
 io.engine.on("connection_error", (err) => {
-  console.error("Socket.IO Connection Error:", {
+  console.error("🚨 Socket.IO Connection Error:", {
     code: err.code,
     message: err.message,
     context: err.context
@@ -61,7 +75,7 @@ function generateSweatData() {
 
 // Socket connection handling
 io.on("connection", (socket) => {
-  console.log("Frontend connected:", socket.id);
+  console.log("🟢 Frontend connected:", socket.id);
   
   // Immediate data emission
   socket.emit("sweatData", generateSweatData());
@@ -73,19 +87,19 @@ io.on("connection", (socket) => {
 
   // Disconnect handling
   socket.on("disconnect", () => {
-    console.log("Frontend disconnected:", socket.id);
+    console.log("🔴 Frontend disconnected:", socket.id);
     clearInterval(interval);
   });
 });
 
 // Vercel serverless function export
 module.exports = (req, res) => {
-  // CORS preflight handling
+  // Additional headers for serverless deployment
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader(
-    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Headers', 
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
