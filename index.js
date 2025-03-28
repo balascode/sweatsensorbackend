@@ -4,16 +4,25 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://sweatsensor.vercel.app",
+];
+
 const io = new Server(server, {
   cors: {
-    origin: [
-      "http://localhost:3000",        
-      "https://sweatsensor.vercel.app",
-    ],
+    origin: (origin, callback) => {
+      if (allowedOrigins.includes(origin) || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST"],
-    credentials: true, 
+    credentials: true,
   },
 });
+
 
 
 
