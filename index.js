@@ -28,22 +28,22 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
-  // Enhanced WebSocket configuration
+  // Vercel-specific WebSocket configuration
   pingTimeout: 60000,
   pingInterval: 25000,
-  allowEIO3: true,
   transports: ['websocket', 'polling'],
-  path: "/socket.io/", // Explicitly set socket.io path
+  path: "/socket.io/", // Explicit socket.io path
 });
 
 // Detailed connection logging
 io.engine.on("connection_error", (err) => {
-  console.log("Connection Error:", err.code);
-  console.log("Connection Error Message:", err.message);
-  console.log("Connection Error Context:", err.context);
+  console.error("Connection Error:", {
+    code: err.code,
+    message: err.message,
+    context: err.context
+  });
 });
 
-// Rest of your existing server code remains the same
 function generateSweatData() {
   return {
     sodium: Math.floor(Math.random() * (100 - 30) + 30),
@@ -55,8 +55,11 @@ function generateSweatData() {
 
 io.on("connection", (socket) => {
   console.log("Frontend connected:", socket.id);
+  
+  // Send initial data immediately
   socket.emit("sweatData", generateSweatData());
 
+  // Periodic data update
   const interval = setInterval(() => {
     socket.emit("sweatData", generateSweatData());
   }, 5000);
@@ -67,14 +70,20 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Allowed origins: ${JSON.stringify(
-    [
-      "http://localhost:3000", 
-      "https://sweatsensor.vercel.app",
-      "https://www.sweatsensor.vercel.app"
-    ]
-  )}`);
-});
+// Vercel serverless function export
+module.exports = (req, res) => {
+  if (req.method === 'OPTIONS') {
+    // Handle CORS preflight requests
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    );
+    return res.status(200).end();
+  }
+
+  // Your existing server logic
+  server.emit('request', req, res);
+};
