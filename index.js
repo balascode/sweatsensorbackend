@@ -6,7 +6,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "https://sweatsensor.vercel.app/" } });
 
-// Simulate sweat data
+// Simulate sweat data 
 function generateSweatData() {
   return {
     sodium: Math.floor(Math.random() * (100 - 30) + 30), // 30-100 mg/L
